@@ -1,5 +1,5 @@
 # From https://github.com/patrickloeber/python-github-action-template
-name: run main.py
+name: Run main.py
 
 on:
   schedule:
