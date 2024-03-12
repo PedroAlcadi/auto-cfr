@@ -3,7 +3,7 @@ name: run main.py
 
 on:
   schedule:
-    - cron: '35 14 * * 0-4' # At 14:35 on every day-of-week from Sunday through Thursday
+    - cron: '35 17 * * 0-4' # At UTC-3 14:35 on every day-of-week from Sunday through Thursday
   workflow_dispatch:
 
 jobs:
