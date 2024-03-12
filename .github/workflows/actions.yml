@@ -1,4 +1,6 @@
 # From https://github.com/patrickloeber/python-github-action-template
+# and
+# https://github.com/microsoft/playwright/issues/7249
 name: Run main.py
 
 on:
@@ -12,36 +14,47 @@ jobs:
     steps:
 
       - name: Checkout repo content
-        uses: actions/checkout@v2 # checkout the repository content to github runner
+        uses: actions/checkout@v4 # Checkout the repository content to github runner
 
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12' # install the python version needed
-          
+          python-version: '3.12'
+      
+      - name: Cache pip
+        id: cache-pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
       - name: Install Python packages
+        if: steps.cache-pip.outputs.cache-hit != 'true'
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
+      - name: Store pytest-playwright's Version
+        run: |
+          PYTEST_PLAYWRIGHT_VERSION=$(pip show pytest-playwright | grep Version | sed 's/Version: //')
+          echo "Pytest-playwright's Version: $PYTEST_PLAYWRIGHT_VERSION"
+          echo "PYTEST_PLAYWRIGHT_VERSION=$PYTEST_PLAYWRIGHT_VERSION" >> $GITHUB_ENV
+      
+      - name: Cache Playwright Browsers for Playwright's Version
+        id: cache-playwright-browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-browsers-${{ env.PLAYWRIGHT_VERSION }}
+
       - name: Install Playwright Firefox with dependencies
+        if: steps.cache-playwright-browsers.outputs.cache-hit != 'true'
         run: playwright install firefox --with-deps
 
-      - name: Execute Python script # run main.py
+      - name: Execute Python script
         env:
           URLS: ${{ secrets.URLS }}
           USER: ${{ secrets.USER }}
         run: python main.py
-          
-      # - name: commit files
-      #   run: |
-      #     git config --local user.email "action@github.com"
-      #     git config --local user.name "GitHub Action"
-      #     git add -A
-      #     git diff-index --quiet HEAD || (git commit -a -m "updated logs" --allow-empty)
-          
-      # - name: push changes
-      #   uses: ad-m/github-push-action@v0.6.0
-      #   with:
-      #     github_token: ${{ secrets.GITHUB_TOKEN }}
-      #     branch: main 
